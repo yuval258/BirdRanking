@@ -13,7 +13,11 @@ const POWER_LABEL = {
   brown: 'When activated', white: 'When played', pink: 'Once between turns', yellow: 'Game end', teal: 'Round end',
 };
 
-const powerText = (t) => esc(t).replace(/\[([a-z_]+)\]/g, (_, n) => icon(n, 'inline'));
+// Icons inside the colored power strips use the glow variants where Wingsearch has them; the
+// plain seed icon is the same orange as the brown strip and disappears, so it gets the dark one.
+const GLOW = new Set(['fish', 'forest', 'fruit', 'grassland', 'invertebrate', 'nectar', 'rodent', 'wetland', 'wild']);
+const strip = (n) => (n === 'seed' ? 'seed-dark-glow' : GLOW.has(n) ? `${n}-glow` : n);
+const powerText = (t) => esc(t).replace(/\[([a-z_]+)\]/g, (_, n) => icon(strip(n), 'inline'));
 
 function foodCost(b) {
   const icons = b.f.flatMap(([name, n]) => Array(n).fill(icon(name)));
