@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bird ranker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="bar">
+  <strong>Bird ranker</strong>
+  <span id="who"></span>
+  <span class="spacer"></span>
+  <button id="btnDuel" hidden>Back to duels</button>
+  <button id="btnFilter" hidden>Filters</button>
+  <button id="btnRecent" hidden>Recent picks</button>
+  <button id="btnRank" hidden>View rankings</button>
+</header>
+<div id="layout"><main id="view"><p class="muted">Loading birds…</p></main>
+<aside id="stats" hidden></aside></div>
+<dialog id="modal"></dialog>
+<footer>Card art and data from <a href="https://navarog.github.io/wingsearch/">Wingsearch</a> (GPL-3.0). Wingspan is by Stonemaier Games.</footer>
+<script type="module" src="js/ui.js"></script>
+</body>
+</html>

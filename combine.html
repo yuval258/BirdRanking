@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bird ranker: combined ranking</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="bar"><strong>Combined ranking</strong><span class="spacer"></span><a href="index.html">Back to ranking</a></header>
+<main>
+  <p class="muted">Choose several exported <code>.birdrank</code> files to merge everyone's picks into one tier list.</p>
+  <input id="files" type="file" accept=".birdrank" multiple>
+  <div id="out"></div>
+</main>
+<dialog id="modal"></dialog>
+<script type="module" src="js/combine.js"></script>
+</body>
+</html>
