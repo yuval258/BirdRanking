@@ -9,7 +9,7 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 main{max-width:2200px;margin:0 auto;padding:12px 8px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
-.duel{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.duel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start}
 .duel .opt{cursor:pointer;border:2px solid transparent;border-radius:16px;padding:6px;background:none;text-align:left}
 .duel .opt:hover,.duel .opt:focus-visible{border-color:var(--accent)}
 .count{text-align:center;color:var(--muted);margin-top:14px}
@@ -85,3 +85,5 @@ h2{font-size:18px;margin:8px 0}
   #stats .odds{position:fixed;left:8px;right:8px;bottom:8px;z-index:5;margin:0;box-shadow:0 2px 12px rgba(0,0,0,.35)}
   #stats{padding-bottom:84px}
 }
+/* The card sizes itself from its container, so its button must never shrink to fit its content. */
+.duel .opt{display:block;width:100%;min-width:0;justify-self:stretch}
