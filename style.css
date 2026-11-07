@@ -83,7 +83,9 @@ h2{font-size:18px;margin:8px 0}
 #stats .odds{margin-bottom:6px}
 @media(max-width:1000px){
   #stats .odds{position:fixed;left:8px;right:8px;bottom:8px;z-index:5;margin:0;box-shadow:0 2px 12px rgba(0,0,0,.35)}
-  #stats{padding-bottom:84px}
+  #stats{padding-bottom:0}
+  /* clears the fixed % bar so the credit line stays readable at the very bottom */
+  footer{padding:12px 16px 96px}
 }
 /* The card sizes itself from its container, so its button must never shrink to fit its content. */
 .duel .opt{display:block;width:100%;min-width:0;justify-self:stretch}
