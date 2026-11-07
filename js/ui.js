@@ -205,7 +205,7 @@ async function onImport(e) {
   }
 }
 
-const DEFAULT_FILTERED = ['oceania', 'americas'];
+const DEFAULT_FILTERED = ['oceania', 'americas', 'promoAsia', 'promoUS'];
 const GROUPS = [
   ['core', 'Base game'], ['european', 'European expansion'], ['oceania', 'Oceania expansion'],
   ['asia', 'Asia expansion'], ['americas', 'Americas expansion'],
