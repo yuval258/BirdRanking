@@ -34,6 +34,8 @@ async function persist(dirtyFrom) {
 
 async function start(nickname, data) {
   session = new Session(birds.length, { nickname, ...(data || {}) });
+  // New users start with these expansions filtered out; they can turn them on under Filters.
+  if (!data) session.setExcluded(birds.map((b, i) => (DEFAULT_FILTERED.includes(b.set) ? i : -1)).filter((i) => i >= 0));
   await store.setCurrent(nickname);
   await persist(0);
   showDuel();
@@ -203,6 +205,7 @@ async function onImport(e) {
   }
 }
 
+const DEFAULT_FILTERED = ['oceania', 'americas'];
 const GROUPS = [
   ['core', 'Base game'], ['european', 'European expansion'], ['oceania', 'Oceania expansion'],
   ['asia', 'Asia expansion'], ['americas', 'Americas expansion'],
