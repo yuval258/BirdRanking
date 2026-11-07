@@ -31,9 +31,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 h2{font-size:18px;margin:8px 0}
 
 #layout{display:flex;align-items:flex-start;justify-content:center}
-#layout main{flex:1;min-width:0}
+#layout main{flex:1;min-width:0;width:100%}
 #stats{width:290px;flex:none;position:sticky;top:56px;max-height:calc(100vh - 56px);overflow:auto;padding:16px;border-left:1px solid var(--line);font-size:13px}
-@media(max-width:1000px){#layout{flex-direction:column}#stats{width:100%;position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}}
+@media(max-width:1000px){#layout{flex-direction:column;align-items:stretch}#stats{width:100%;position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}}
 
 #stats{padding:12px 14px;font-size:12px}
 #stats h3{font-size:12px;margin:10px 0 4px;font-weight:600}#stats h3:first-child{margin-top:0}

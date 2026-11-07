@@ -18,7 +18,8 @@ export async function uploadRanking(session, hash, url = DRIVE_URL) {
   return call(url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ nickname: session.nickname, data: bytesToB64(bytes) }),
+    // Lowercased so one person's file is replaced no matter how the name was capitalized.
+    body: JSON.stringify({ nickname: session.nickname.toLowerCase(), data: bytesToB64(bytes) }),
   });
 }
 
@@ -47,7 +48,7 @@ export function othersAggregate(items, n, ownNickname) {
   const agg = new Aggregate(n);
   const people = [];
   for (const { nickname, picks } of items) {
-    if (nickname === ownNickname) continue;
+    if (nickname.toLowerCase() === ownNickname.toLowerCase()) continue;
     for (const p of picks) agg.add(p >>> 16, p & 0xffff);
     people.push({ nickname, count: picks.length });
   }

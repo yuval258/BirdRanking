@@ -10,7 +10,7 @@ const out = document.getElementById('out');
 // Combines [{nickname, picks}] (a later entry with the same nickname replaces an earlier one).
 async function show(items, problems) {
   const { birds } = await loadBirds();
-  const users = new Map(items.map((i) => [i.nickname, i.picks]));
+  const users = new Map(items.map((i) => [i.nickname.toLowerCase(), i.picks]));
   const total = new Aggregate(birds.length);
   const per = [];
   for (const [nickname, picks] of users) {

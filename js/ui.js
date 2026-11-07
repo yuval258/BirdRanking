@@ -45,7 +45,7 @@ async function showLogin() {
   const users = await store.listUsers();
   view.innerHTML = `<h2>Who's ranking?</h2>
     ${users.map((u) => `<div class="row"><span class="nm">${esc(u.nickname)}</span><span class="muted">${u.count} picks</span><button data-user="${esc(u.nickname)}">Continue</button></div>`).join('')}
-    <form id="newUser" class="actions"><input id="nick" placeholder="Pick a nickname" maxlength="30" required>
+    <form id="newUser" class="actions"><input id="nick" placeholder="Pick a nickname" maxlength="30" required autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
       <button class="primary">Start ranking</button>
       <button type="button" id="imp">Import a ranking file</button></form>
     <input id="file" type="file" accept=".birdrank" hidden>`;
@@ -55,8 +55,10 @@ async function showLogin() {
   });
   $('newUser').onsubmit = async (e) => {
     e.preventDefault();
-    const nick = $('nick').value.trim();
-    if (!nick) return;
+    // Nicknames are case-insensitive: reuse an existing user whose name differs only in case.
+    const typed = $('nick').value.trim().toLowerCase();
+    if (!typed) return;
+    const nick = users.find((u) => u.nickname.toLowerCase() === typed)?.nickname ?? typed;
     await start(nick, await store.loadUser(nick));
   };
   $('imp').onclick = () => $('file').click();

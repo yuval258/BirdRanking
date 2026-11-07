@@ -59,3 +59,18 @@ test('others aggregate skips the current user and is a fixed snapshot', () => {
   items[1].picks = Uint32Array.from([]);
   assert.equal(agg.wins[2], 2); // later changes to the source don't leak into the snapshot
 });
+
+test('nickname matching ignores case', () => {
+  const items = [{ nickname: 'Me', picks: Uint32Array.from([pack(0, 1)]) }, { nickname: 'sam', picks: Uint32Array.from([pack(2, 3)]) }];
+  const { people } = othersAggregate(items, 10, 'ME');
+  assert.deepEqual(people.map((p) => p.nickname), ['sam']);
+});
+
+test('upload sends the nickname lowercased', async () => {
+  const s = new Session(10, { nickname: 'Mish' });
+  s.pick(s.pair()[0]);
+  let body;
+  globalThis.fetch = async (url, init) => { body = JSON.parse(init.body); return { ok: true, status: 200, json: async () => ({ ok: true }) }; };
+  await uploadRanking(s, 'h', 'https://x/exec');
+  assert.equal(body.nickname, 'mish');
+});
