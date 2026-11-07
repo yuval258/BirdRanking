@@ -1,25 +1,16 @@
 import { loadBirds } from './data.js';
 import { importBytes } from './codec.js';
 import { Aggregate, rank, TIERS } from './scoring.js';
-import { icon } from './card.js';
+import { driveEnabled, loadDriveRankings } from './drive.js';
 
 const TIER_COLOR = { S: '#e24b4a', A: '#ef9f27', B: '#c9a227', C: '#639922', D: '#378add', F: '#888780' };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const out = document.getElementById('out');
 
-document.getElementById('files').onchange = async (e) => {
-  const { birds, hash } = await loadBirds();
-  const users = new Map(); // nickname+exportedAt dedupe: later file for the same nickname replaces earlier
-  const problems = [];
-  for (const f of e.target.files) {
-    try {
-      const { header, picks } = await importBytes(new Uint8Array(await f.arrayBuffer()));
-      if (header.birdsDataHash !== hash) throw new Error('different bird list');
-      users.set(header.nickname, picks);
-    } catch (err) {
-      problems.push(`${f.name}: ${err.message}`);
-    }
-  }
+// Combines [{nickname, picks}] (a later entry with the same nickname replaces an earlier one).
+async function show(items, problems) {
+  const { birds } = await loadBirds();
+  const users = new Map(items.map((i) => [i.nickname, i.picks]));
   const total = new Aggregate(birds.length);
   const per = [];
   for (const [nickname, picks] of users) {
@@ -40,3 +31,34 @@ document.getElementById('files').onchange = async (e) => {
       <div class="chips">${t.birds.map((b) => `<span class="chip"><span class="dot" data-color="${birds[b].c}"></span>${esc(birds[b].n)}</span>`).join('')}</div></div>`).join('')}</div>
     <h2>Agreement</h2>${agree}`;
 };
+
+document.getElementById('files').onchange = async (e) => {
+  const { hash } = await loadBirds();
+  const items = [];
+  const problems = [];
+  for (const f of e.target.files) {
+    try {
+      const { header, picks } = await importBytes(new Uint8Array(await f.arrayBuffer()));
+      if (header.birdsDataHash !== hash) throw new Error('different bird list');
+      items.push({ nickname: header.nickname, picks });
+    } catch (err) {
+      problems.push(`${f.name}: ${err.message}`);
+    }
+  }
+  await show(items, problems);
+};
+
+if (driveEnabled()) {
+  const btn = document.getElementById('drive');
+  btn.hidden = false;
+  btn.onclick = async () => {
+    out.innerHTML = '<p class="muted">Loading rankings from Drive…</p>';
+    try {
+      const { hash } = await loadBirds();
+      const { items, skipped } = await loadDriveRankings(hash);
+      await show(items, skipped);
+    } catch (err) {
+      out.innerHTML = `<p>Couldn't load from Drive: ${esc(err.message)}</p>`;
+    }
+  };
+}

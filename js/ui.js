@@ -1,9 +1,10 @@
 import { loadBirds } from './data.js';
 import { cardHTML } from './card.js';
 import { Session } from './session.js';
-import { rank, TIERS } from './scoring.js';
+import { Aggregate, rank, TIERS } from './scoring.js';
 import { exportBytes, importBytes, MAX_BIRDS } from './codec.js';
 import * as store from './store.js';
+import { driveEnabled, uploadRanking, loadDriveRankings, othersAggregate } from './drive.js';
 import { collectionStats, wingSummary, rangeOdds, histogram, shareOf, HABITATS, FOODS, NESTS } from './stats.js';
 import { icon, nestIcon } from './card.js';
 
@@ -84,6 +85,8 @@ async function choose(w) {
   const pos = session.pick(w);
   showDuel();
   await persist(pos);
+  // Background backup to Drive every 50 picks; the Save to Drive button covers the rest.
+  if (driveEnabled() && session.count % 50 === 0) uploadRanking(session, hash).catch(() => {});
 }
 
 function showRecent() {
@@ -113,34 +116,61 @@ function showReview(i) {
   $('backRecent').onclick = showRecent;
 }
 
-function showRankings() {
+// Other people's Drive files are read once when the page opens. After that only the current
+// user's own picks change the view, until the page is reloaded.
+let remote = Promise.resolve(null);
+const othersCache = new Map();
+async function combined() {
+  const snap = await remote;
+  if (!othersCache.has(session.nickname)) {
+    othersCache.set(session.nickname, snap ? othersAggregate(snap.items, birds.length, session.nickname) : { agg: new Aggregate(birds.length), people: [] });
+  }
+  const others = othersCache.get(session.nickname);
+  const agg = new Aggregate(birds.length);
+  agg.merge(others.agg);
+  agg.merge(session.agg);
+  return { agg, others: others.people, offline: driveEnabled() && !snap };
+}
+
+async function showRankings() {
   bar('rank');
-  const { tiers, order, scores } = rank(session.agg, undefined, session.excluded());
+  view.innerHTML = '<p class="muted">Loading the rankings…</p>';
+  const { agg, others, offline } = await combined();
+  const { tiers, order, scores } = rank(agg, undefined, session.excluded());
   const total = order.length;
-  const rows = tiers.map((t, i) => `<div class="tier"><div class="tl" style="background:${TIER_COLOR[t.name]}">${t.name}</div>
+  const picksTotal = session.count + others.reduce((a, o) => a + o.count, 0);
+  const rows = tiers.map((t) => `<div class="tier"><div class="tl" style="background:${TIER_COLOR[t.name]}">${t.name}</div>
       <div class="chips">${t.birds.map((b) => `<button class="chip" data-b="${b}"><span class="dot" data-color="${birds[b].c}"></span>${esc(birds[b].n)}</button>`).join('')}</div>
       <div class="pct">${total ? Math.round((t.birds.length / total) * 100) : 0}%</div></div>`).join('');
   const max = Math.max(1, ...tiers.map((t) => t.birds.length));
-  view.innerHTML = `<h2>Your rankings</h2>
-    <p class="muted">${total} of ${birds.length - session.excluded().size} birds ranked from ${session.count} picks.${session.count < birds.length ? ' This is provisional and firms up as you pick.' : ''}</p>
+  const who = [`you ${session.count}`, ...others.map((o) => `${esc(o.nickname)} ${o.count}`)].join(', ');
+  view.innerHTML = `<h2>${others.length ? 'Combined rankings' : 'Your rankings'}</h2>
+    <p class="muted">${total} of ${birds.length - session.excluded().size} birds ranked from ${picksTotal} picks${others.length ? ` (${who}). Others' picks are as of when you opened the page; yours update live` : ''}.${picksTotal < birds.length ? ' This is provisional and firms up as you pick.' : ''}${offline ? ' Couldn\'t reach Drive, so only your picks are shown.' : ''}</p>
     <div class="tiers">${rows || '<p class="muted">Make a few picks to see a ranking.</p>'}</div>
     <div class="bars">${tiers.map((t) => `<div style="height:${(t.birds.length / max) * 100}%;background:${TIER_COLOR[t.name]}"></div>`).join('')}</div>
     <div class="bars-l">${TIERS.map(([n]) => `<span>${n}</span>`).join('')}</div>
-    <div class="actions"><button id="exp">Export ranking</button><button id="imp">Import ranking</button><button id="sw">Switch user</button></div>
-    <input id="file" type="file" accept=".birdrank" hidden>`;
-  view.querySelectorAll('[data-b]').forEach((c) => c.onclick = () => showWhy(+c.dataset.b, scores, order));
+    <div class="actions"><button id="exp">Export ranking</button>${driveEnabled() ? '<button id="drive">Save to Drive</button>' : ''}<button id="imp">Import ranking</button><button id="sw">Switch user</button></div>
+    <p id="driveMsg" class="muted"></p><input id="file" type="file" accept=".birdrank" hidden>`;
+  if (driveEnabled()) {
+    $('drive').onclick = async () => {
+      $('driveMsg').textContent = 'Saving to Drive…';
+      try { await uploadRanking(session, hash); $('driveMsg').textContent = 'Saved to Drive.'; }
+      catch (e) { $('driveMsg').textContent = `Couldn't save to Drive: ${e.message}`; }
+    };
+  }
+  view.querySelectorAll('[data-b]').forEach((c) => c.onclick = () => showWhy(+c.dataset.b, scores, order, agg));
   $('exp').onclick = onExport;
   $('imp').onclick = () => $('file').click();
   $('file').onchange = onImport;
   $('sw').onclick = showLogin;
 }
 
-function showWhy(b, scores, order) {
+function showWhy(b, scores, order, agg) {
   const pos = new Map(order.map((x, i) => [x, i]));
-  const wins = session.agg.winsOf(b).sort((x, y) => scores[y[0]] - scores[x[0]]).slice(0, 6);
+  const wins = agg.winsOf(b).sort((x, y) => scores[y[0]] - scores[x[0]]).slice(0, 6);
   const m = $('modal');
   m.innerHTML = `${cardHTML(birds[b])}
-    <div class="why"><strong>#${pos.get(b) + 1} of ${order.length}</strong> · ${session.agg.wins[b]} wins, ${session.agg.losses[b]} losses
+    <div class="why"><strong>#${pos.get(b) + 1} of ${order.length}</strong> · ${agg.wins[b]} wins, ${agg.losses[b]} losses
       ${wins.map(([l, c]) => `<div><span>Beat ${esc(birds[l].n)}${c > 1 ? ` ×${c}` : ''}</span><span class="muted">${pos.has(l) ? `#${pos.get(l) + 1}` : 'filtered'}</span></div>`).join('')}</div>
     <div class="actions"><button id="closeM">Close</button></div>`;
   m.showModal();
@@ -283,6 +313,7 @@ document.addEventListener('keydown', (e) => {
 
 (async () => {
   ({ birds, hash } = await loadBirds());
+  if (driveEnabled()) remote = loadDriveRankings(hash).catch(() => null);
   if (birds.length > MAX_BIRDS) throw new Error('too many birds for the pick format');
   const cur = await store.getCurrent();
   const data = cur && await store.loadUser(cur);
